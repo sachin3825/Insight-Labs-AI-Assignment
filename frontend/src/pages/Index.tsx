@@ -4,6 +4,7 @@ import { Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
 import { MessageBubble } from "../components/MessageBubble";
 import { TypingIndicator } from "../components/TypingIndicator";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import axios from "axios";
 
 export interface Message {
   id: string | number;
@@ -27,141 +28,6 @@ const Index = () => {
         },
       ],
     },
-    {
-      id: 2,
-      role: "user",
-      content: [
-        {
-          type: "text",
-          data: "Show me the top cryptocurrencies by market cap",
-        },
-      ],
-    },
-    // {
-    //   id: 3,
-    //   role: "bot",
-    //   content: [
-    //     {
-    //       type: "table",
-    //       data: {
-    //         columns: [
-    //           "Rank",
-    //           "Name",
-    //           "Symbol",
-    //           "Price",
-    //           "Market Cap",
-    //           "24h Change",
-    //         ],
-    //         rows: [
-    //           {
-    //             Rank: 1,
-    //             Name: "Bitcoin",
-    //             Symbol: "BTC",
-    //             Price: "$43,250",
-    //             "Market Cap": "$847B",
-    //             "24h Change": "+2.3%",
-    //           },
-    //           {
-    //             Rank: 2,
-    //             Name: "Ethereum",
-    //             Symbol: "ETH",
-    //             Price: "$2,630",
-    //             "Market Cap": "$316B",
-    //             "24h Change": "+1.8%",
-    //           },
-    //           {
-    //             Rank: 3,
-    //             Name: "Binance Coin",
-    //             Symbol: "BNB",
-    //             Price: "$315",
-    //             "Market Cap": "$47B",
-    //             "24h Change": "-0.5%",
-    //           },
-    //           {
-    //             Rank: 4,
-    //             Name: "Solana",
-    //             Symbol: "SOL",
-    //             Price: "$98",
-    //             "Market Cap": "$44B",
-    //             "24h Change": "+4.2%",
-    //           },
-    //           {
-    //             Rank: 5,
-    //             Name: "XRP",
-    //             Symbol: "XRP",
-    //             Price: "$0.62",
-    //             "Market Cap": "$35B",
-    //             "24h Change": "+0.8%",
-    //           },
-    //         ],
-    //       },
-    //     },
-    //   ],
-    // },
-    {
-      id: 4,
-      role: "user",
-      content: [
-        {
-          type: "text",
-          data: "Can you show me Bitcoin price trend for the last week?",
-        },
-      ],
-    },
-    {
-      id: 5,
-      role: "bot",
-      content: [
-        {
-          type: "text",
-          data: "Here's the price trend of Bitcoin over the past week:",
-        },
-        {
-          type: "chart",
-          data: [
-            { day: "Mon", price: 41200 },
-            { day: "Tue", price: 42100 },
-            { day: "Wed", price: 41800 },
-            { day: "Thu", price: 43200 },
-            { day: "Fri", price: 42900 },
-            { day: "Sat", price: 43800 },
-            { day: "Sun", price: 43250 },
-          ],
-        },
-      ],
-    },
-    {
-      id: 6,
-      role: "user",
-      content: [
-        {
-          type: "text",
-          data: "Show me Ethereum price comparison",
-        },
-      ],
-    },
-    {
-      id: 7,
-      role: "bot",
-      content: [
-        {
-          type: "text",
-          data: "Here’s how Ethereum performed this week:",
-        },
-        {
-          type: "chart",
-          data: [
-            { day: "Mon", price: 2580 },
-            { day: "Tue", price: 2620 },
-            { day: "Wed", price: 2590 },
-            { day: "Thu", price: 2650 },
-            { day: "Fri", price: 2630 },
-            { day: "Sat", price: 2680 },
-            { day: "Sun", price: 2630 },
-          ],
-        },
-      ],
-    },
   ]);
 
   const [input, setInput] = useState("");
@@ -173,6 +39,7 @@ const Index = () => {
     null
   );
   const [transcribedText, setTranscribedText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -198,10 +65,111 @@ const Index = () => {
     };
   }, []);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // Function to parse bot response and determine content type
+  const parseResponse = (response: any): Message["content"] => {
+    try {
+      // If response is a string, treat as text
+      if (typeof response === "string") {
+        return [{ type: "text", data: response }];
+      }
 
-    const newMessage: Message = {
+      // Handle the specific backend response format with content array
+      if (response.content && Array.isArray(response.content)) {
+        return response.content.map((item: any) => ({
+          type: (["text", "table", "chart"].includes(item.type)
+            ? item.type
+            : "text") as "text" | "table" | "chart",
+          data: item.data,
+        })) as { type: "text" | "table" | "chart"; data: any }[];
+      }
+
+      // If response has specific structure for tables/charts
+      if (response.type === "table" && response.data) {
+        return [
+          {
+            type: "text",
+            data: response.message || "Here's the data you requested:",
+          },
+          { type: "table", data: response.data },
+        ];
+      }
+
+      if (response.type === "chart" && response.data) {
+        return [
+          { type: "text", data: response.message || "Here's the chart data:" },
+          { type: "chart", data: response.data },
+        ];
+      }
+
+      // If response has both message and data
+      if (response.message && response.data) {
+        const content: { type: "text" | "table" | "chart"; data: any }[] = [
+          { type: "text", data: response.message },
+        ];
+
+        // Determine if data is for table or chart based on structure
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          const firstItem = response.data[0];
+          // If has day/date field, treat as chart data
+          if (firstItem.day || firstItem.date || firstItem.time) {
+            content.push({ type: "chart" as const, data: response.data });
+          } else {
+            // Otherwise treat as table data
+            content.push({
+              type: "table" as const,
+              data: { columns: Object.keys(firstItem), rows: response.data },
+            });
+          }
+        }
+
+        return content;
+      }
+
+      // Default fallback
+      return [
+        { type: "text", data: response.message || JSON.stringify(response) },
+      ];
+    } catch (error) {
+      console.error("Error parsing response:", error);
+      return [
+        {
+          type: "text",
+          data: "I received your message but couldn't format the response properly.",
+        },
+      ];
+    }
+  };
+
+  const sendMessageToAPI = async (message: string) => {
+    try {
+      setIsLoading(true);
+      const response = await axios.post(
+        "http://localhost:3000/api/chat",
+        {
+          message: message,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("API Error:", error);
+
+      throw new Error("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+
+    const userMessage: Message = {
       id: Date.now(),
       role: "user",
       content: [
@@ -212,26 +180,45 @@ const Index = () => {
       ],
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    // Add user message immediately
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input.trim();
     setInput("");
     setTranscribedText("");
 
-    // Simulate bot response
+    // Show typing indicator
     setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
+
+    try {
+      // Send message to API
+      const response = await sendMessageToAPI(currentInput);
+
+      // Parse and add bot response
       const botResponse: Message = {
+        id: (response as { id?: string | number })?.id || Date.now() + 1,
+        role: "bot",
+        content: parseResponse(response),
+      };
+
+      setMessages((prev) => [...prev, botResponse]);
+    } catch (error) {
+      // Add error message
+      const errorMessage: Message = {
         id: Date.now() + 1,
         role: "bot",
         content: [
           {
             type: "text",
-            data: "Thanks for your question! I'm analyzing the crypto market data for you. This is a demo response to show the chat interface in action.",
+            data: `Sorry, I encountered an error: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
           },
         ],
       };
-      setMessages((prev) => [...prev, botResponse]);
-    }, 2000);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -414,7 +401,7 @@ const Index = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-4xl mx-auto bg-transparent  backdrop-blur-xl px-5 pt-3 pb-3 fixed bottom-2 left-0 right-0 z-50  rounded-md shadow-lg border border-slate-700/50 transition-all duration-300"
+        className="max-w-4xl mx-auto bg-transparent backdrop-blur-xl px-5 pt-3 pb-3 fixed bottom-2 left-0 right-0 z-50 rounded-md shadow-lg border border-slate-700/50 transition-all duration-300"
       >
         <div className="flex items-center space-x-4">
           <div className="flex-1 relative">
@@ -424,9 +411,13 @@ const Index = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about crypto prices, market data, or trends..."
+              placeholder={
+                isLoading
+                  ? "Sending message..."
+                  : "Ask about crypto prices, market data, or trends..."
+              }
               className="w-full px-6 py-4 bg-slate-800/50 border border-slate-600/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 pr-36 text-white placeholder-slate-400"
-              disabled={isRecording}
+              disabled={isRecording || isLoading}
             />
 
             {/* Mic + Timer container */}
@@ -449,10 +440,11 @@ const Index = () => {
               {/* Mic Button */}
               <button
                 onClick={handleMicClick}
+                disabled={isLoading}
                 className={`p-2 rounded-full transition-all duration-200 select-none ${
                   isRecording
                     ? "bg-red-500 text-white shadow-lg shadow-red-500/25"
-                    : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50"
+                    : "bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 disabled:opacity-50"
                 }`}
               >
                 {isRecording ? (
@@ -485,13 +477,21 @@ const Index = () => {
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: isLoading ? 1 : 1.05 }}
+            whileTap={{ scale: isLoading ? 1 : 0.95 }}
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
             className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl disabled:hover:scale-100"
           >
-            <Send className="w-5 h-5" />
+            {isLoading ? (
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+              />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </motion.button>
         </div>
       </motion.div>
