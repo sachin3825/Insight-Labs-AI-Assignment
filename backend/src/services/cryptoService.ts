@@ -4,20 +4,24 @@ import { constants } from "../utils/constants";
 const currency = "inr";
 const symbol = currency === "inr" ? "₹" : "$";
 
+const axiosInstance = axios.create({
+  baseURL: constants.COINGECKO_BASE_URL,
+  headers: {
+    "x-cg-demo-api-key": process.env.COINGEKKO_API_KEY!,
+  },
+});
+
 export class CryptoService {
   static async getCurrentPrice(coinId: string) {
     try {
-      const response = await axios.get(
-        `${constants.COINGECKO_BASE_URL}/simple/price`,
-        {
-          params: {
-            ids: coinId,
-            vs_currencies: currency,
-            include_24hr_change: true,
-            include_market_cap: true,
-          },
-        }
-      );
+      const response = await axiosInstance.get("/simple/price", {
+        params: {
+          ids: coinId,
+          vs_currencies: currency,
+          include_24hr_change: true,
+          include_market_cap: true,
+        },
+      });
 
       const data = (response?.data as Record<string, any>)[coinId];
       if (!data) throw new Error("Coin not found");
@@ -50,9 +54,11 @@ export class CryptoService {
       interface TrendingCoinsResponse {
         coins: TrendingCoinItem[];
       }
-      const response = await axios.get<TrendingCoinsResponse>(
-        `${constants.COINGECKO_BASE_URL}/search/trending`
+
+      const response = await axiosInstance.get<TrendingCoinsResponse>(
+        "/search/trending"
       );
+
       return response.data.coins.slice(0, 10).map((coin) => ({
         id: coin.item.id,
         name: coin.item.name,
@@ -67,9 +73,7 @@ export class CryptoService {
 
   static async getCoinStats(coinId: string) {
     try {
-      const response = await axios.get(
-        `${constants.COINGECKO_BASE_URL}/coins/${coinId}`
-      );
+      const response = await axiosInstance.get(`/coins/${coinId}`);
       const coin: any = response.data;
 
       return {
@@ -93,8 +97,8 @@ export class CryptoService {
 
   static async getChartData(coinId: string, days = 7) {
     try {
-      const response = await axios.get(
-        `${constants.COINGECKO_BASE_URL}/coins/${coinId}/market_chart`,
+      const response = await axiosInstance.get(
+        `/coins/${coinId}/market_chart`,
         {
           params: {
             vs_currency: "inr",
