@@ -224,13 +224,17 @@ const Index = () => {
   };
 
   const sendMessageToAPI = async (message: string) => {
+    const BASE_URL =
+      import.meta.env.VITE_ENV === "production"
+        ? import.meta.env.VITE_BACKEND_URL
+        : "http://localhost:3000/api/chat";
+
     try {
       setIsLoading(true);
+
       const response = await axios.post(
-        "http://localhost:3000/api/chat",
-        {
-          message: message,
-        },
+        BASE_URL,
+        { message },
         {
           headers: {
             "Content-Type": "application/json",
@@ -242,7 +246,6 @@ const Index = () => {
       return response.data;
     } catch (error) {
       console.error("API Error:", error);
-
       throw new Error("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
