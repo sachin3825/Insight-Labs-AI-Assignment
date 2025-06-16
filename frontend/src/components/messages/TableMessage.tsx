@@ -24,7 +24,7 @@ export const TableMessage = ({ content }: TableMessageProps) => {
               {headers.map((header, index) => (
                 <th
                   key={index}
-                  className="text-left py-2 px-3 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap"
+                  className="text-left py-2 px-3 font-semibold text-white dark:text-slate-300 whitespace-nowrap"
                 >
                   {header}
                 </th>

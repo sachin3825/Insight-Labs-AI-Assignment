@@ -9,18 +9,11 @@ const formatNumber = (num: number, decimals = 2) => {
   }).format(num);
 };
 
-const formatCurrency = (amount: number) => {
-  if (amount >= 1e7) {
-    // Crores
-    return `₹${(amount / 1e7).toFixed(2)} Cr`;
-  } else if (amount >= 1e5) {
-    // Lakhs
-    return `₹${(amount / 1e5).toFixed(2)} L`;
-  } else if (amount >= 1e3) {
-    // Thousands
-    return `₹${(amount / 1e3).toFixed(2)} K`;
-  }
-  return `₹${new Intl.NumberFormat("en-IN").format(amount)}`;
+const formatCurrency = (value: number): string => {
+  if (value >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e7) return `${(value / 1e7).toFixed(2)}Cr`;
+  return value.toLocaleString();
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

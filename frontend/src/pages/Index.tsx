@@ -44,6 +44,8 @@ const Index = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const transcriptionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  //@ts-ignore
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -64,6 +66,87 @@ const Index = () => {
       }
     };
   }, []);
+
+  const getSpeechRecognition = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+    return SpeechRecognition ? new SpeechRecognition() : null;
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+
+      recognitionRef.current = getSpeechRecognition();
+      const recognition = recognitionRef.current;
+
+      if (!recognition) {
+        alert("SpeechRecognition not supported in this browser.");
+        return;
+      }
+
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-IN";
+
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setRecordingDuration(0);
+        setTranscribedText("");
+        setInput("");
+
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingDuration((prev) => prev + 1);
+        }, 1000);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = "";
+        let final = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += transcript + " ";
+          } else {
+            interim += transcript;
+          }
+        }
+
+        const combined = (transcribedText + " " + final + interim).trim();
+        setTranscribedText(combined);
+        setInput(combined);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        stopRecording(); // optionally stop
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      setMediaRecorder(recorder);
+      recorder.start();
+      recognition.start();
+
+      // Stop both on recorder stop
+      recorder.onstop = () => {
+        recognition.stop();
+      };
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("Unable to access microphone. Please check your permissions.");
+    }
+  };
 
   // Function to parse bot response and determine content type
   const parseResponse = (response: any): Message["content"] => {
@@ -219,6 +302,9 @@ const Index = () => {
     } finally {
       setIsTyping(false);
     }
+    stopRecording();
+    setInput("");
+    setTranscribedText("");
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -256,60 +342,22 @@ const Index = () => {
     }, 300);
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-
-      recorder.onstart = () => {
-        setIsRecording(true);
-        setRecordingDuration(0);
-        setTranscribedText("");
-        setInput("");
-
-        // Start timer
-        recordingTimerRef.current = setInterval(() => {
-          setRecordingDuration((prev) => prev + 1);
-        }, 1000);
-
-        // Start simulated transcription after a short delay
-        setTimeout(() => {
-          simulateTranscription();
-        }, 500);
-      };
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          console.log("Audio data received:", event.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        setIsRecording(false);
-        setRecordingDuration(0);
-        if (recordingTimerRef.current) {
-          clearInterval(recordingTimerRef.current);
-          recordingTimerRef.current = null;
-        }
-        if (transcriptionTimerRef.current) {
-          clearInterval(transcriptionTimerRef.current);
-          transcriptionTimerRef.current = null;
-        }
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      setMediaRecorder(recorder);
-      recorder.start();
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      alert("Unable to access microphone. Please check your permissions.");
-    }
-  };
-
   const stopRecording = () => {
-    if (mediaRecorder && isRecording) {
+    if (mediaRecorder) {
       mediaRecorder.stop();
     }
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+
+    setIsRecording(false);
   };
 
   const handleMicClick = () => {
@@ -353,7 +401,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white transition-colors duration-300">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white transition-colors duration-300 p-5">
       <div className="max-w-4xl mx-auto min-h-screen flex flex-col space-y-6 pt-10 pb-[100px]">
         {/* Messages */}
         <AnimatePresence initial={false}>

@@ -27,8 +27,8 @@ export class CryptoService {
       return {
         coin: coinId,
         price: data.inr,
-        change24h: data.inr_market_cap,
-        marketCap: data.inr_24h_change,
+        change24h: data.inr_24h_change,
+        marketCap: data.inr_market_cap,
         currencySymbol: symbol,
       };
     } catch (error: any) {
@@ -77,12 +77,12 @@ export class CryptoService {
         name: coin.name,
         symbol: coin.symbol.toUpperCase(),
         description: coin.description.en.split(".")[0] + ".",
-        currentPrice: coin.market_data.current_price.usd,
-        marketCap: coin.market_data.market_cap.usd,
+        currentPrice: coin.market_data.current_price.inr,
+        marketCap: coin.market_data.market_cap.inr,
         marketCapRank: coin.market_cap_rank,
         change24h: coin.market_data.price_change_percentage_24h,
         change7d: coin.market_data.price_change_percentage_7d,
-        volume24h: coin.market_data.total_volume.usd,
+        volume24h: coin.market_data.total_volume.inr,
         circulatingSupply: coin.market_data.circulating_supply,
         totalSupply: coin.market_data.total_supply,
       };
@@ -97,7 +97,7 @@ export class CryptoService {
         `${constants.COINGECKO_BASE_URL}/coins/${coinId}/market_chart`,
         {
           params: {
-            vs_currency: "usd",
+            vs_currency: "inr",
             days: days,
             interval: days <= 1 ? "hourly" : "daily",
           },

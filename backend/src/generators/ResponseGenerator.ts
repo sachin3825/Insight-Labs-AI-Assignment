@@ -46,6 +46,13 @@ interface StatsData {
   circulatingSupply: number;
 }
 
+// Raw API response interface
+interface RawPriceData {
+  inr: number;
+  inr_market_cap: number;
+  inr_24h_change: number;
+}
+
 type Content =
   | { type: "text"; data: string }
   | {
@@ -82,10 +89,32 @@ type Intent =
 
 // Class Implementation
 export class ResponseGenerator {
+  // Helper method to transform raw API data to PriceData
+  static transformRawPriceData(rawData: RawPriceData, coin: string): PriceData {
+    console.log("🔄 Raw API data:", rawData);
+    console.log("🔄 Mapping:", {
+      "rawData.inr (price)": rawData.inr,
+      "rawData.inr_24h_change (change%)": rawData.inr_24h_change,
+      "rawData.inr_market_cap (market cap)": rawData.inr_market_cap,
+    });
+
+    const transformed = {
+      coin,
+      price: rawData.inr, // ✅ Price: 219389
+      change24h: rawData.inr_24h_change, // ✅ Change: 1.76%
+      marketCap: rawData.inr_market_cap, // ✅ Market Cap: 26484056972288.754
+      currencySymbol: "₹",
+    };
+
+    console.log("🔄 Transformed result:", transformed);
+    return transformed;
+  }
+
   static generateResponse(
     intent: Intent,
     data: any,
-    error: Error | null = null
+    error: Error | null = null,
+    coin?: string // Add coin parameter for price requests
   ): BotResponse {
     const messageId = uuidv4();
     const timestamp = new Date().toISOString();
@@ -101,11 +130,21 @@ export class ResponseGenerator {
 
     switch (intent) {
       case "getPrice":
-        return this.generatePriceResponse(
-          messageId,
-          timestamp,
-          data as PriceData
-        );
+        // Always transform raw data if it has the API structure
+        let priceData: PriceData;
+        if (data && typeof data === "object" && "inr" in data) {
+          console.log("🚀 Raw API data detected:", data);
+          console.log("🚀 About to transform with coin:", coin);
+          priceData = this.transformRawPriceData(
+            data as RawPriceData,
+            coin || "Unknown"
+          );
+          console.log("🚀 Final transformed data:", priceData);
+        } else {
+          console.log("🚀 Using data as-is (not raw API format):", data);
+          priceData = data as PriceData;
+        }
+        return this.generatePriceResponse(messageId, timestamp, priceData);
       case "getTrending":
         return this.generateTrendingResponse(
           messageId,

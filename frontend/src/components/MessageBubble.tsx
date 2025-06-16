@@ -22,6 +22,7 @@ export const MessageBubble = ({ message, onSpeak }: MessageBubbleProps) => {
           return (
             <TableMessage
               key={index}
+              // @ts-ignore
               content={
                 block.data as {
                   columns: string[];
@@ -34,7 +35,8 @@ export const MessageBubble = ({ message, onSpeak }: MessageBubbleProps) => {
           return (
             <ChartMessage
               key={index}
-              content={block.data as { day: string; price: number }[]}
+              // @ts-ignore
+              content={block.data.chartData as { day: string; price: number }[]}
             />
           );
         default:

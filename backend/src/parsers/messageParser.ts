@@ -9,11 +9,19 @@ export class MessageParser {
       this.matchesPattern(text, ["price", "trading", "worth", "cost", "value"])
     ) {
       const coin = this.extractCoin(text);
-      return {
-        intent: "getPrice",
-        coin: coin || "bitcoin",
-        confidence: coin ? 0.9 : 0.6,
-      };
+      if (coin) {
+        return {
+          intent: "getPrice",
+          coin,
+          confidence: 0.9,
+        };
+      } else {
+        return {
+          intent: "missingCoin",
+          message: "Please specify which coin you're asking about.",
+          confidence: 0.4,
+        };
+      }
     }
 
     // Trending/popular coins
