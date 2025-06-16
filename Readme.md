@@ -1,79 +1,103 @@
-#  Conversational Crypto Web-Chat
+# Conversational Crypto Web-Chat
 
-A full-stack AI-powered crypto assistant that supports voice + text-based queries to help users track coin prices, view trends, analyze stats, and manage holdings — all in a clean, mobile-friendly chat interface.
+This project is a full-stack assignment demonstrating a crypto-based conversational interface. It supports both voice and text input to help users retrieve live coin data, view market trends, check basic stats, and track their personal holdings — all through a responsive and clean chat UI.
 
-> 📽️ **[Demo Video](https://www.loom.com/share/b93391ab7a3f4150b54b5717403ba2fb?sid=8f178b7c-4997-41a4-9ffe-8e4a2b40588b)** – Watch the full walkthrough
-
----
-
-## 🧩 Features
-
-- 🔁 Conversational UI (text + mic)
-- 💬 AI answers about coins (e.g. "What's BTC trading at?")
-- 📈 7-day price charts for any coin
-- 📊 Real-time portfolio tracking from user messages (e.g. "I have 2 ETH")
-- 🔝 Trending coin listings
-- 🧠 Assistant reads responses aloud
-- ⚡ Fast response with loading indicators
-- 🧵 Smooth UX with bubble layout and scroll behavior
-- ❌ Friendly errors (e.g. if API rate-limits)
+You can view the demo walkthrough here:  
+**Demo Video:** [https://www.loom.com/share/b93391ab7a3f4150b54b5717403ba2fb?sid=8f178b7c-4997-41a4-9ffe-8e4a2b40588b](https://www.loom.com/share/b93391ab7a3f4150b54b5717403ba2fb?sid=8f178b7c-4997-41a4-9ffe-8e4a2b40588b)
 
 ---
 
+## Features
 
-## 🧠 My Approach
-
-I broke the problem down into several key tasks and solved each one modularly:
-
-### ✅ Chat UI
-- Built using React, TailwindCSS, and ShadCN UI.
-- Voice support added using the **Web Speech API**.
-- Assistant responses are spoken using `speechSynthesis`.
-
-### ✅ Crypto Integration
-- Used **CoinGecko's free API** for pricing, trending coins, charts, and metadata.
-- Added API key support where required (rate-limited on production deployments).
-- Fetched data through a backend proxy to avoid CORS and 403 issues.
-
-### ✅ Holdings Tracking
-- Parsed user messages like "I have 2 BTC" to store holdings.
-- Calculated live portfolio value using current prices.
-
-### ✅ Charting
-- Used `recharts` to display 7-day price trend per coin.
-
-### ✅ Error Handling
-- If an API fails or times out, fallback messages like "Coin not found" or "Try again later" are shown.
-- A "Thinking..." bubble appears while data loads.
+- Clean and mobile-friendly chat interface
+- Users can interact using either typed or spoken input
+- Responds to queries like current coin price, market cap, or recent performance
+- Displays 7-day historical price charts for supported coins
+- Allows users to store crypto holdings and view live portfolio value
+- Shows today's trending cryptocurrencies
+- Assistant voice replies are supported via browser's speech synthesis
+- Shows loading indicators while data is being fetched
+- Displays fallback messages if something goes wrong (e.g., API failures)
 
 ---
 
-## 🧪 Sample Questions to Try
+## Project Structure
 
-- `What’s ETH trading at right now?`
-- `Show me the top trending coins today.`
-- `What’s the market cap of Dogecoin?`
-- `I have 2 BTC and 3 ETH`
-- `Chart for Solana for past week`
+The codebase is organized into a monorepo with two main directories:
 
----
+```
 
-## 🚀 How to Run Locally
+Insight-Labs-AI-Assignment/
+├── frontend/   # React + Vite frontend
+└── backend/    # Express.js backend
 
-### Prerequisites
-
-- Node.js v18+
-- Yarn or npm
-- `.env.local` files in both `frontend/` and `backend/`
-
-### 1. Clone the Repo
-
-```bash
-git clone [https://github.com/your-username/crypto-chat.git](https://github.com/sachin3825/Insight-Labs-AI-Assignment.git)
-cd Insight-Labs-AI-Assignmen
 ````
 
-### 2. Install Dependencies
+---
+
+## Implementation Approach
+
+The challenge was broken into modular tasks and implemented as follows:
+
+### Chat Interface and Voice Support
+
+- Developed the chat UI using React and Tailwind CSS, styled using utility-first design.
+- Voice input is implemented using the Web Speech API for transcription.
+- Speech synthesis is used to make the assistant reply aloud.
+
+### Backend Integration
+
+- All crypto data is fetched using the CoinGecko API.
+- To handle API restrictions and avoid CORS issues, a backend proxy was set up using Express.
+- Added support for environment-based API key usage.
+
+### Message Understanding
+
+- A basic intent detection system parses user messages.
+- It relies on simple keyword checks to route requests like "price", "chart", "market cap", etc.
+- This approach is lightweight but effective for the scope of the assignment.
+
+### Portfolio Tracking
+
+- Messages like "I have 2 BTC" are parsed using regex to extract coin symbol and quantity.
+- The live value of the holdings is computed using the latest fetched prices and displayed in the chat.
+
+### Chart Rendering
+
+- Recharts is used to display 7-day price charts in response to chart-related queries.
+
+---
+
+## Sample Questions
+
+Try any of the following to test the application:
+
+- What’s ETH trading at right now?
+- Show me today’s top trending coins
+- What is the market cap of Dogecoin?
+- I have 2 BTC and 3 ETH
+- Show a chart for Solana for past week
+
+---
+
+## How to Run the Project Locally
+
+### Requirements
+
+- Node.js v18+
+- npm or yarn
+- CoinGecko API key (optional, but recommended for production usage)
+
+### Steps
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/sachin3825/Insight-Labs-AI-Assignment.git
+cd Insight-Labs-AI-Assignment
+````
+
+2. Install dependencies for both frontend and backend:
 
 ```bash
 cd backend
@@ -83,60 +107,61 @@ cd ../frontend
 npm install
 ```
 
-### 3. Set Up Environment Variables
+3. Set up environment variables:
 
-#### `backend/.env`
+Create a `.env` file in `backend/`:
 
-```env
+```
 PORT=3000
 COINGEKKO_API_KEY=your_api_key_here
 ```
 
-#### `frontend/.env.local`
+Create a `.env.local` file in `frontend/`:
 
-```env
+```
 VITE_BACKEND_URL=http://localhost:3000/api/chat
 VITE_ENV=development
 ```
 
-### 4. Run the App
-
-In two separate terminals:
+4. Run the project in two terminals:
 
 ```bash
-# Terminal 1 (Backend)
+# Backend
 cd backend
 npm run dev
 ```
 
 ```bash
-# Terminal 2 (Frontend)
+# Frontend
 cd frontend
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Then open [http://localhost:8080](http://localhost:8080) in your browser.
 
 ---
 
-## ⚠️ Why It Isn’t Deployed (Yet)
+## Notes and Limitations
 
-CoinGecko's public API rate-limits or blocks requests coming from cloud services like Render or Vercel unless:
-
-* You use an approved key
-* Or proxy all requests through a backend
-
-Since the current project is for an assignment/demo, I focused on **functionality and robustness** over cloud deployment. You can still run the full experience locally!
+* The current implementation works for most popular cryptocurrencies like Bitcoin, Ethereum, Solana, and Dogecoin. However, not all coins from the CoinGecko API give consistent responses. To avoid errors, only a subset of valid coins is handled in practice.
+* The message interpretation system uses basic keyword matching. While this works well for demo purposes, it may not scale to complex queries or multiple intents per message.
+* API rate-limiting by CoinGecko can affect responses in production. To mitigate this, a backend proxy is used, but deployment services like Vercel or Render may still trigger 403 errors without paid API access.
+* The project is not deployed live due to CoinGecko’s limitations on external/cloud-based requests, which interfere with smooth user experience. All functionality can be tested locally.
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-* **Frontend:** React, TypeScript, Vite, Tailwind CSS
-* **Voice APIs:** Web Speech API
-* **Backend:** Node.js, Express
-* **Charting:** Recharts
-* **API:** CoinGecko (free)
+* Frontend: React, TypeScript, Vite, Tailwind CSS
+* Voice Input/Output: Web Speech API
+* Backend: Node.js, Express
+* Charting: Recharts
+* Data Source: CoinGecko API
 
 ---
 
+## Final Thoughts
+
+This project was built as a technical assignment to demonstrate the ability to combine frontend UX, API integration, and conversational design into a cohesive product. The codebase is modular, readable, and easily extensible for future improvements such as better NLP, user authentication, or persistent storage.
+
+```
