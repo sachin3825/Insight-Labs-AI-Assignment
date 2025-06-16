@@ -376,6 +376,8 @@ export class ResponseGenerator {
   private static getErrorMessage(error: Error): string {
     const msg = error.message.toLowerCase();
 
+    console.log(error);
+
     if (msg.includes("rate limit"))
       return "Too many requests. Please wait before trying again.";
     if (msg.includes("not found"))
