@@ -164,4 +164,3 @@ Then open [http://localhost:8080](http://localhost:8080) in your browser.
 
 This project was built as a technical assignment to demonstrate the ability to combine frontend UX, API integration, and conversational design into a cohesive product. The codebase is modular, readable, and easily extensible for future improvements such as better NLP, user authentication, or persistent storage.
 
-```
